@@ -14,7 +14,9 @@ Link → metadata → artwork → audio → snippet → customize → rendered v
 
 </div>
 
-<!-- Add a screenshot or GIF here: docs/screenshot.png -->
+<div align="center">
+  <img src="docs/demo.gif" alt="A story exported from Music Story Studio" width="360">
+</div>
 
 ## Features
 
@@ -46,8 +48,8 @@ deploy              Dockerfiles and Oracle Cloud hosting guide
 ### Run
 
 ```bash
-git clone <your-fork-url> music-story-studio
-cd music-story-studio
+git clone https://github.com/Ferhadb/SongToStory.git
+cd SongToStory
 make setup   # installs tools, copies .env.example to .env, installs deps
 make dev     # API on :8000, web on :3000
 ```
