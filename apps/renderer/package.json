@@ -1,0 +1,14 @@
+{
+  "name": "@mss/renderer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@mss/compositions": "workspace:*",
+    "@remotion/bundler": "4.0.539",
+    "@remotion/renderer": "4.0.539",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.539"
+  }
+}
