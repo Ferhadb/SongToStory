@@ -15,6 +15,9 @@ dependencies = [
   "numpy>=2.5.4",
 ]
 
+[project.optional-dependencies]
+asr = ["faster-whisper>=1.1"]  # fallback lyrics: uv sync --extra asr
+
 [dependency-groups]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "respx>=0.21", "ruff>=0.6"]
 

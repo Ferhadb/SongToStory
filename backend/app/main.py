@@ -10,6 +10,7 @@ from app.artwork.images import save_image, save_photo
 from app.artwork.sources import find_artwork
 from app.audio import service as audio_service
 from app.audio.analysis import analyze_file
+from app.audio.lyrics import cached_whisper, fetch_lrclib
 from app.audio.media import MediaError, waveform_peaks
 from app.audio.processing import SnippetSpec
 from app.core.config import get_settings
@@ -189,6 +190,34 @@ async def audio_snippet(spec: SnippetSpec):
         return await audio_service.make_snippet(spec, store, settings)
     except MediaError as e:
         raise _media_http(e) from e
+
+
+class LyricsRequest(BaseModel):
+    title: str
+    artist: str = ""
+    duration_ms: int | None = None  # of the whole track
+    start_ms: int  # snippet bounds within the track
+    end_ms: int
+    snippet_asset_id: str
+
+
+@app.post("/api/v1/audio/lyrics")
+async def audio_lyrics(req: LyricsRequest):
+    """Time-synced lyric lines for a snippet (ms from snippet start): LRCLIB, else Whisper on the snippet audio."""
+    a = _asset_or_404(req.snippet_asset_id)
+    if a.kind != "audio" or not 0 <= req.start_ms < req.end_ms:
+        raise HTTPException(422, detail={"error": {"code": "invalid_request", "message": "Invalid snippet.", "retryable": False}})
+    lines = await fetch_lrclib(req.title, req.artist, req.duration_ms, req.start_ms, req.end_ms)
+    source = "lrclib"
+    if not lines:
+        source = "whisper"
+        try:
+            lines = await run_in_threadpool(cached_whisper, store.path_of(a), a.id, settings.data_dir / "transcripts")
+        except MediaError:
+            if lines is None:  # LRCLIB was down, so "not found" would be a lie
+                e = MediaError("provider_unavailable", "The lyrics service is busy. Try again in a moment.")
+            raise _media_http(e) from e
+    return {"lines": lines, "source": source}
 
 
 @app.post("/api/v1/artwork/candidates")

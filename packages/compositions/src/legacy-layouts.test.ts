@@ -7,7 +7,7 @@ import { buildElementsV1 } from "./templates-v1";
 
 const colors = { text: "#ffffff", accent: "#ff5500", bg: "#202020" };
 const titles = ["Холод", "Blinding Lights", "A Very Long Song Title That Goes On And On Forever (Remastered 2011 Deluxe Edition)", "Очень длинное название песни которое не помещается в одну строку"];
-const OLD = TEMPLATES.filter((t) => t.id !== "photo-story");
+const OLD = TEMPLATES.filter((t) => t.id !== "photo-story" && t.id !== "lyrics"); // newer than the frozen v1 designs
 const snapshot = legacy as Record<string, unknown>;
 
 /** A project as saved before template versioning existed: built by the original layouts, with no templateVersion. */

@@ -3,6 +3,7 @@ import { create } from "zustand";
 import {
   ASPECTS, DEFAULT_VIS, PLAYER_RATIO, applyTemplate, changeAspect, playerHeight, reflowTrackText, setTypePair,
   type AspectId, type Photo, type PlayerSettings, type Project, type StoryElement,
+  DEFAULT_LYRICS, type Lyrics,
 } from "@mss/compositions";
 import type { Snippet } from "../snippet";
 
@@ -44,6 +45,7 @@ interface EditorState {
   setPhoto: (photo: Photo) => void;
   editPhoto: (patch: Partial<Photo>, key?: string) => void;
   removePhoto: () => void;
+  editLyrics: (patch: Partial<Lyrics>, key?: string) => void;
   editPlayer: (id: string, patch: Partial<PlayerSettings>, key?: string) => void;
   /** A new clip of the song (from the clip editor): one undo step, the card's progress follows the new length. */
   setClip: (snippetAssetId: string, snippet: Snippet) => void;
@@ -181,6 +183,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   editPhoto: (patch, key) =>
     get().edit((d) => { if (d.photo) Object.assign(d.photo, patch); }, key ?? `photo:${Object.keys(patch).join(",")}`),
   removePhoto: () => get().edit((d) => { d.photo = null; }),
+  editLyrics: (patch, key) =>
+    get().edit((d) => { d.lyrics = { ...(d.lyrics ?? DEFAULT_LYRICS), ...patch }; }, key ?? `lyrics:${Object.keys(patch).join(",")}`),
   editPlayer: (id, patch, key) =>
     get().edit((d) => {
       const e = d.elements.find((x) => x.id === id);
@@ -197,7 +201,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       }
     }, key ?? `player:${id}:${Object.keys(patch).join(",")}`),
   setClip: (snippetAssetId, snippet) =>
-    get().edit((d) => { d.audio.snippetAssetId = snippetAssetId; d.audio.snippet = snippet; }),
+    get().edit((d) => { d.audio.snippetAssetId = snippetAssetId; d.audio.snippet = snippet; if (d.lyrics) d.lyrics.lines = []; }), // lyric times belong to the old clip
 
   undo: () => {
     const { project, past, future } = get();

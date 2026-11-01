@@ -2,7 +2,7 @@
 
 import { Thumbnail } from "@remotion/player";
 import { useMemo } from "react";
-import { ASPECTS, Story, TEMPLATES, applyTemplate, durationFramesOf } from "@mss/compositions";
+import { ASPECTS, DEFAULT_LYRICS, SAMPLE_LYRICS, Story, TEMPLATES, applyTemplate, durationFramesOf } from "@mss/compositions";
 import { useEditor } from "@/lib/editor/store";
 
 const BOX_W = 124;
@@ -17,7 +17,7 @@ export default function TemplateGallery() {
   // Previews only depend on what shows in them, not on element edits, so dragging on the canvas doesn't rebuild seven thumbnails.
   const { track, theme, artwork, photo, canvas } = p;
   const base = useMemo(() => ({ ...p }), [track, theme, artwork, photo, canvas, p.audio.snippet?.endMs, p.audio.snippet?.startMs]); // eslint-disable-line react-hooks/exhaustive-deps
-  const previews = useMemo(() => TEMPLATES.map((t) => ({ t, project: applyTemplate(base, t.id) })), [base]);
+  const previews = useMemo(() => TEMPLATES.map((t) => ({ t, project: t.id === "lyrics" ? { ...applyTemplate(base, t.id), lyrics: { ...DEFAULT_LYRICS, lines: SAMPLE_LYRICS } } : applyTemplate(base, t.id) })), [base]);
   const lastFrame = (pr: typeof base) => Math.min(durationFramesOf(pr) - 1, Math.round(pr.canvas.fps * 3));
 
   return (

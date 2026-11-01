@@ -46,7 +46,7 @@ export const TextStyleSchema = z.object({
 });
 export type TextStyle = z.infer<typeof TextStyleSchema>;
 
-export const ELEMENT_TYPES = ["cover", "title", "artist", "album", "text", "source", "time", "progress", "controls", "panel", "visualizer", "shape", "player"] as const;
+export const ELEMENT_TYPES = ["cover", "title", "artist", "album", "text", "source", "time", "progress", "controls", "panel", "visualizer", "shape", "player", "lyrics"] as const;
 export type ElementType = (typeof ELEMENT_TYPES)[number];
 
 export const PLAYER_STYLES = ["apple", "apple-tall", "spotify"] as const;
@@ -135,6 +135,16 @@ export const SnippetSchema = z.object({
   gainDb: z.number(), normalize: z.boolean(),
 });
 
+/** Synced lyrics, drawn by the "lyrics" element. Line times are ms from the start of the snippet (story time), not of the source track. */
+export const LyricsSchema = z.object({
+  lines: z.array(z.object({ startMs: z.number().min(0), endMs: z.number().min(0), text: z.string().max(200) })).max(300),
+  size: z.number().min(0.04).max(0.14), // largest font size as a fraction of canvas width; shrinks until 3 lines fit the element
+  align: z.enum(["left", "center"]),
+  highlight: z.enum(["accent", "text"]),
+});
+export type Lyrics = z.infer<typeof LyricsSchema>;
+export const DEFAULT_LYRICS: Lyrics = { lines: [], size: 0.09, align: "left", highlight: "accent" };
+
 export const ProjectSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
   id: z.string(),
@@ -160,6 +170,7 @@ export const ProjectSchema = z.object({
   templateVersion: z.number().int().min(1).optional(), // absent = design 1 (see TEMPLATE_VERSION)
   typePair: z.string().optional(), // curated typography choice kept across format changes
   photo: PhotoSchema.nullable().optional(),
+  lyrics: LyricsSchema.optional(),
   elements: z.array(ElementSchema),
   progress: z.object({ mode: z.enum(["snippet", "original"]) }),
   fallbackDurationMs: z.number(), // story length when no audio snippet exists

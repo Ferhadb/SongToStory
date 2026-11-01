@@ -83,6 +83,12 @@ def validate_project(p: dict, store: AssetStore, s: Settings) -> tuple[int, int,
                     raise RenderError("invalid_project", "An element has invalid geometry.")
             if len(str(e.get("content") or "")) > 500:
                 raise RenderError("invalid_project", "Text is too long.")
+        lines = (p.get("lyrics") or {}).get("lines", [])
+        if not isinstance(lines, list) or len(lines) > 300:
+            raise RenderError("invalid_project", "Too many lyric lines.")
+        for ln in lines:
+            if len(str(ln["text"])) > 200 or not 0 <= ln["startMs"] <= ln["endMs"]:
+                raise RenderError("invalid_project", "A lyric line is invalid.")
         sn = p["audio"].get("snippet")
         dur_ms = int(sn["endMs"] - sn["startMs"]) if sn else int(p["fallbackDurationMs"])
         if dur_ms < 1000 or dur_ms > s.render_max_seconds * 1000:
