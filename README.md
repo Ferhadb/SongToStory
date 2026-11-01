@@ -10,6 +10,10 @@ make setup && make dev
 **Audio caveat:** downloading YouTube audio (yt-dlp adapter) conflicts with YouTube's ToS; this is a
 personal-use decision. It is isolated behind `ENABLE_YTDLP` and can be removed.
 
+## Hosting online
+
+See `deploy/ORACLE.md` for a free Oracle Cloud setup with Docker Compose and a Cloudflare tunnel.
+
 ## Exporting video
 
 The editor's **Export** button renders an MP4 (H.264 + AAC) on the server: FastAPI queues the job, a Node

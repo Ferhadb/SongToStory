@@ -1,0 +1,25 @@
+# Music Story Studio on one machine:  docker compose up -d --build
+# The tunnel prints a public https://….trycloudflare.com address in its logs (docker compose logs tunnel).
+services:
+  api:
+    build: { context: ., dockerfile: deploy/Dockerfile.api }
+    restart: unless-stopped
+    env_file: [{ path: .env, required: false }]
+    environment:
+      DATA_DIR: /data
+    volumes: ["studio-data:/data"]
+    shm_size: "1gb" # Chromium needs more than Docker's 64 MB default
+
+  web:
+    build: { context: ., dockerfile: deploy/Dockerfile.web, args: { API_URL: "http://api:8000" } }
+    restart: unless-stopped
+    depends_on: [api]
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://web:3000
+    depends_on: [web]
+
+volumes:
+  studio-data:

@@ -1,0 +1,37 @@
+# API + video renderer: FastAPI, ffmpeg, yt-dlp, Node (Remotion) and Chromium in one image.
+FROM node:22-bookworm-slim AS node-deps
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/renderer/package.json apps/renderer/
+COPY apps/web/package.json apps/web/
+COPY packages/compositions/package.json packages/compositions/
+RUN pnpm install --frozen-lockfile --filter @mss/renderer...
+
+FROM python:3.12-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg chromium fonts-liberation ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=node-deps /usr/local/bin/node /usr/local/bin/node
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+COPY --from=node-deps /app/node_modules node_modules
+COPY --from=node-deps /app/apps/renderer/node_modules apps/renderer/node_modules
+COPY --from=node-deps /app/packages/compositions/node_modules packages/compositions/node_modules
+COPY packages/compositions packages/compositions
+COPY apps/renderer apps/renderer
+
+WORKDIR /app/backend
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --frozen --no-dev --python 3.12
+COPY backend/ ./
+
+ENV PATH="/app/backend/.venv/bin:$PATH" \
+    DATA_DIR=/data \
+    CHROME_PATH=/usr/bin/chromium \
+    RENDER_ASSET_BASE=http://localhost:8000/api/v1/assets
+VOLUME /data
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD curl -fs http://localhost:8000/api/v1/health || exit 1
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
