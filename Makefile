@@ -11,7 +11,6 @@ help:
 
 setup: ## Install toolchain deps (macOS: Homebrew) and project deps
 	@command -v ffmpeg >/dev/null || brew install ffmpeg
-	@command -v redis-server >/dev/null || brew install redis
 	@command -v pnpm >/dev/null || brew install pnpm
 	@command -v uv >/dev/null || brew install uv
 	@command -v yt-dlp >/dev/null || brew install yt-dlp
