@@ -3,6 +3,7 @@
 import { ASPECTS, ASPECT_IDS, TYPE_PAIRS, hasNewerDesign, pairSupports, templateVersionOf, type AspectId } from "@mss/compositions";
 import { useEditor } from "@/lib/editor/store";
 import DesignAdvanced from "./DesignAdvanced";
+import LyricsControls from "./LyricsControls";
 import PhotoControls from "./PhotoControls";
 import TemplateGallery from "./TemplateGallery";
 import TrackFields from "./TrackFields";
@@ -58,6 +59,7 @@ export default function DesignPanel({ onClip }: { onClip: () => void }) {
         <p className="mb-2 text-xs text-muted">{p.audio.snippet ? `Playing ${mmss(p.audio.snippet.startMs)}–${mmss(p.audio.snippet.endMs)} of the song.` : "No clip chosen yet."}</p>
         <button onClick={onClip} className="border border-line px-2.5 py-1 text-xs hover:bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]">Change clip…</button>
       </Section>
+      {p.templateId === "lyrics" && <LyricsControls />}
       <Advanced title="Advanced">
         <Section title="Progress bar shows">
           <Select label="Timeline" value={p.progress.mode} options={[{ value: "snippet", label: "Clip" }, { value: "original", label: "Whole song" }]}

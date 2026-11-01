@@ -106,6 +106,11 @@ export const uploadAudio = (file: File) => {
   return request<Asset>("/api/v1/uploads/audio", { method: "POST", body: fd });
 };
 
+export const fetchLyrics = (a: { title: string; artist: string; durationMs: number | null; startMs: number; endMs: number; snippetAssetId: string }) =>
+  postJson<{ lines: { startMs: number; endMs: number; text: string }[]; source: "lrclib" | "whisper" }>("/api/v1/audio/lyrics", {
+    title: a.title, artist: a.artist, duration_ms: a.durationMs, start_ms: a.startMs, end_ms: a.endMs, snippet_asset_id: a.snippetAssetId,
+  });
+
 export const createSnippet = (assetId: string, sn: import("./snippet").Snippet) =>
   postJson<Asset>("/api/v1/audio/snippet", {
     asset_id: assetId,

@@ -8,6 +8,7 @@ import { VisualizerView } from "./Visualizer";
 import { FONT_LOADERS, fam, PLAYER_FONT } from "./fonts";
 import { fitText } from "./measure";
 import { photoRect } from "./photo";
+import { LyricsBlock } from "./LyricsBlock";
 import { PlayerCard } from "./PlayerCard";
 import { ASPECTS, type Background, type Photo, type Project, type StoryElement } from "./schema";
 
@@ -199,6 +200,7 @@ function textOf(e: StoryElement, p: Project): string {
 function ElementBody({ e, p, art, assetBase, frame, fps, analysis }: { e: StoryElement; p: Project; art: string | null; assetBase: string; frame: number; fps: number; analysis: Analysis | null }) {
   if (e.type === "visualizer" && e.vis) return <VisualizerView vis={e.vis} w={e.w} h={e.h} analysis={analysis} frame={frame} />;
   if (e.type === "shape") return <ShapeView e={e} />;
+  if (e.type === "lyrics") return <LyricsBlock e={e} p={p} frame={frame} fps={fps} />;
   if (e.type === "player") {
     const trackArt = (size: number) => (p.artwork && art ? <ArtSquare p={p} art={art} size={size} radiusPct={0} /> : null);
     return <PlayerCard e={e} p={p} frame={frame} fps={fps} artwork={trackArt} assetBase={assetBase} />;

@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { animationAt, ease } from "./animations";
 import { resizeRect, snapMove } from "./layout";
 import { progressAt } from "./progress";
-import { ASPECTS, ASPECT_IDS, parseProject, durationFramesOf } from "./schema";
+import { ASPECTS, ASPECT_IDS, DEFAULT_LYRICS, parseProject, durationFramesOf } from "./schema";
 import { TEMPLATES, applyTemplate, changeAspect, createProject, resetElement } from "./templates";
 import { DEFAULT_COVER } from "./artwork";
+import { activeAt, fitLyrics, lineTop, slotOf, slotOpacity, SWITCH_MS } from "./lyrics";
 
 const base = () =>
   createProject({
@@ -98,5 +99,48 @@ describe("layout", () => {
   it("west resize anchors the right edge", () => {
     const r = resizeRect({ x: 100, y: 0, w: 200, h: 100 }, "w", 50, 0, false);
     expect(r.x + r.w).toBe(300);
+  });
+});
+
+describe("lyrics", () => {
+  const lines = [{ startMs: 1000, endMs: 2000, text: "a" }, { startMs: 2000, endMs: 3000, text: "b" }];
+  it("picks the active line and switch progress", () => {
+    expect(activeAt(lines, 500)).toEqual({ idx: -1, t: 1 });
+    expect(activeAt(lines, 1000)).toEqual({ idx: 0, t: 0 });
+    expect(activeAt(lines, 2000 + SWITCH_MS / 2).idx).toBe(1);
+    expect(activeAt(lines, 9000)).toEqual({ idx: 1, t: 1 });
+  });
+  it("slides the stack one slot per switch", () => {
+    expect(slotOf(1, 1, 0)).toBe(1); // new active line still sits in the "next" slot
+    expect(slotOf(1, 1, 1)).toBe(0);
+    expect(slotOpacity(0)).toBe(1);
+    expect(slotOpacity(1)).toBeCloseTo(0.35);
+    expect(slotOpacity(2)).toBe(0);
+  });
+  it("fits three lines in the element at the largest size, wrapping long lines", () => {
+    const f = fitLyrics(["short", "a much longer line that has to wrap across several rows of text", "short"], "Inter", {}, 800, 500, 100);
+    expect(f.size).toBeLessThanOrEqual(100);
+    expect(f.heights[1]).toBeGreaterThan(f.heights[0]);
+    expect(f.heights[0] + f.heights[1] + f.heights[2] + 2 * f.gap).toBeLessThanOrEqual(500);
+    expect(lineTop(1, 1, 250, f) + f.heights[1] / 2).toBeCloseTo(250); // active line centred
+    expect(lineTop(2, 1, 250, f)).toBeCloseTo(lineTop(1, 1, 250, f) + f.heights[1] + f.gap);
+  });
+  it("the Lyrics template keeps its lyrics area inside the canvas, below the header and above the footer", () => {
+    for (const aspect of ASPECT_IDS) {
+      const p = changeAspect(applyTemplate(base(), "lyrics"), aspect);
+      const L = p.elements.find((e) => e.type === "lyrics")!;
+      const { w, h } = ASPECTS[aspect];
+      const header = Math.max(...p.elements.filter((e) => e.type === "cover" || e.type === "title" || e.type === "artist").map((e) => e.y + e.h));
+      const footer = Math.min(...p.elements.filter((e) => e.type === "progress").map((e) => e.y));
+      expect(L.y, aspect).toBeGreaterThanOrEqual(header);
+      expect(L.y + L.h, aspect).toBeLessThanOrEqual(footer);
+      expect(L.x + L.w).toBeLessThanOrEqual(w);
+      expect(L.h).toBeGreaterThan(h * 0.15);
+    }
+  });
+  it("old projects without lyrics still parse", () => {
+    const raw = JSON.parse(JSON.stringify(base()));
+    expect(parseProject(raw).lyrics).toBeUndefined();
+    expect(parseProject({ ...raw, lyrics: { ...DEFAULT_LYRICS, lines } }).lyrics?.lines).toHaveLength(2);
   });
 });

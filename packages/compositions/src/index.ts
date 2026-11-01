@@ -11,3 +11,4 @@ export { Story, type StoryProps } from "./Story";
 export * from "./artwork";
 export * from "./analysis";
 export { VisualizerView, DEFAULT_VIS } from "./Visualizer";
+export * from "./lyrics";

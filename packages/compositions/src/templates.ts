@@ -18,6 +18,7 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: "minimal", name: "Type Poster", description: "Giant condensed type and scrolling outlined lettering." },
   { id: "visualizer", name: "Spectrum Ring", description: "A spinning disc ringed by a live audio spectrum." },
   { id: "polaroid", name: "Instant Print", description: "A clean instant print with the song written underneath." },
+  { id: "lyrics", name: "Lyrics", description: "Big synced lyrics, line by line, under a compact song header." },
   { id: "photo-story", name: "Photo Story", description: "Your own photo with a music player card over it." },
 ];
 
@@ -25,7 +26,7 @@ export const FONTS = ["Inter", "Manrope", "Playfair Display", "Unbounded", "Oswa
 /** Fraunces has no Cyrillic glyphs. */
 export const LATIN_ONLY_FONTS: readonly string[] = ["Fraunces"];
 
-export type Preset = PresetV1 | "photo-story";
+export type Preset = PresetV1 | "photo-story" | "lyrics";
 export type { Colors, Safe };
 
 const anim = (type: StoryElement["in"]["type"], startMs: number, durationMs = 700) => ({ ...NO_ANIM, type, startMs, durationMs });
@@ -172,7 +173,7 @@ export interface BuildOpts {
 
 export function buildElements(preset: Preset, aspect: AspectId, c: Colors, title = "", opts: BuildOpts = {}): StoryElement[] {
   const version = opts.version ?? TEMPLATE_VERSION;
-  if (version < 2 && preset !== "photo-story") return buildElementsV1(preset, aspect, c, title);
+  if (version < 2 && preset !== "photo-story" && preset !== "lyrics") return buildElementsV1(preset, aspect, c, title);
   uid = 0;
   const x = ctxOf(aspect, c, title, opts.artist ?? "");
   const { fs, land, W, H, s } = x;
@@ -272,6 +273,34 @@ export function buildElements(preset: Preset, aspect: AspectId, c: Colors, title
     return out;
   }
 
+  if (preset === "lyrics") {
+    // compact header (cover + title + artist), the lyrics filling the middle, progress at the foot
+    const cs = fs(140), gx = fs(28), tx = s.side + cs + gx, tw = x.innerW - cs - gx;
+    const tr = role({ font: "Manrope", weight: 800, track: -0.02 }, heading), ar = role({ font: "Manrope", weight: 500 }, body);
+    const tf = fitText(x.title || " ", { font: tr.font, maxW: tw, maxLines: 2, maxSize: fs(48), minSize: fs(28), weight: tr.weight, upper: tr.upper, tracking: tr.track, lineHeight: 1.1 });
+    const af = fitText(x.artist || " ", { font: ar.font, maxW: tw, maxLines: 1, maxSize: fs(32), minSize: fs(22), weight: ar.weight, upper: ar.upper, tracking: ar.track });
+    const titleH = Math.round(tf.lines * tf.size * 1.1), artistH = Math.round(af.size * 1.35), gap = fs(8);
+    const ty = s.top + (cs - (titleH + gap + artistH)) / 2;
+    out.push(mk("cover", "Cover", [s.side, s.top, cs, cs], { shadow: 40, in: anim("scale", 0, 700) }));
+    out.push(mk("title", "Title", [tx, ty, tw, titleH], {
+      text: text({ fontFamily: tr.font, fontSize: tf.size, fontWeight: tr.weight, color: c.text, align: "left", maxLines: tf.lines, uppercase: !!tr.upper, letterSpacing: Math.round((tr.track ?? 0) * tf.size * 10) / 10, lineHeight: 1.1, valign: "bottom" }),
+      in: anim("fade", 100),
+    }));
+    out.push(mk("artist", "Artist", [tx, ty + titleH + gap, tw, artistH], {
+      text: text({ fontFamily: ar.font, fontSize: af.size, fontWeight: ar.weight, color: c.text, align: "left", maxLines: 1, uppercase: !!ar.upper, letterSpacing: Math.round((ar.track ?? 0) * af.size * 10) / 10 }),
+      opacity: 0.74, in: anim("fade", 200),
+    }));
+    const timeFs = fs(26), timeH = Math.round(timeFs * 1.3), footH = barH + fs(16) + timeH;
+    const fy = H - s.bottom - footH, ly = s.top + cs + fs(56);
+    out.push(mk("lyrics", "Lyrics", [s.side, ly, x.innerW, Math.max(fs(200), fy - fs(56) - ly)], { in: anim("fade", 0, 500) }));
+    const tm = role({ font: "Manrope", weight: 500 }, body);
+    const ts = (align: "left" | "right") => text({ fontFamily: tm.font, fontSize: timeFs, color: c.text, fontWeight: tm.weight, align, maxLines: 1 });
+    out.push(mk("progress", "Progress", [s.side, fy, x.innerW, barH], { bar: { color: c.accent, trackColor: c.text, trackOpacity: 0.26, rounded: true }, in: anim("fade", 300) }));
+    out.push(mk("time", "Elapsed", [s.side, fy + barH + fs(16), x.innerW / 2, timeH], { timeKind: "elapsed", text: ts("left"), opacity: 0.7, in: anim("fade", 350) }));
+    out.push(mk("time", "Total", [s.side + x.innerW / 2, fy + barH + fs(16), x.innerW / 2, timeH], { timeKind: "total", text: ts("right"), opacity: 0.7, in: anim("fade", 350) }));
+    return out;
+  }
+
   if (preset === "photo-story") {
     const player = opts.player ?? { style: "apple" as const, title: null, artist: null, artwork: null };
     const ratio = playerHeight(player.style, 1000) / 1000;
@@ -321,9 +350,10 @@ export function buildElements(preset: Preset, aspect: AspectId, c: Colors, title
 
 export function defaultBackground(preset: Preset, c: Colors, version = TEMPLATE_VERSION): Background {
   if (preset === "photo-story") return { type: "photo" };
-  if (version < 2) return defaultBackgroundV1(preset, c);
+  if (version < 2 && preset !== "lyrics") return defaultBackgroundV1(preset, c);
   const dark = luma(c.bg) < 0.5 ? c.bg : "#101010";
   switch (preset) {
+    case "lyrics": return { type: "art", blur: 70, zoom: 1.5, brightness: 66, saturation: 145, overlay: c.bg, overlayOpacity: 0.18, drift: 0.5 };
     case "classic": return { type: "art", blur: 55, zoom: 1.35, brightness: 58, saturation: 125, overlay: c.bg, overlayOpacity: 0.3, drift: 0.7 };
     case "glass": return { type: "aurora", base: shade(dark, -0.55), colors: [c.accent, hueShift(c.accent, 38), hueShift(c.accent, -42)], speed: 1 };
     case "visualizer": return { type: "aurora", base: shade(dark, -0.75), colors: [hueShift(c.accent, 0), hueShift(c.accent, 70), hueShift(c.accent, -60)], speed: 0.8 };
@@ -335,9 +365,10 @@ export function defaultBackground(preset: Preset, c: Colors, version = TEMPLATE_
 
 export function defaultEffects(preset: Preset, version = TEMPLATE_VERSION): Project["effects"] {
   if (preset === "photo-story") return { vignette: 22, grain: 6 };
-  if (version < 2) return defaultEffectsV1(preset);
+  if (version < 2 && preset !== "lyrics") return defaultEffectsV1(preset);
   switch (preset) {
     case "classic": return { vignette: 35, grain: 18 };
+    case "lyrics": return { vignette: 30, grain: 12 };
     case "glass": return { vignette: 20, grain: 14 };
     case "cover-first": return { vignette: 45, grain: 38 };
     case "visualizer": return { vignette: 40, grain: 12 };
